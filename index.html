@@ -128,7 +128,7 @@
 
   <!-- SCRIPT: Firebase + Lógica completa -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
     import {
       getFirestore,
       collection,
@@ -137,7 +137,7 @@
       setDoc,
       doc,
       deleteDoc
-    } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
     // ----- PON AQUÍ TU FIREBASE CONFIG (reemplaza después) -----
     const firebaseConfig = {
@@ -211,7 +211,7 @@ A32 5G,3,3,3,`;
     let fullInventory = []; // se llenará desde Firestore
 
     // ---------- REFERENCIAS DOM ----------
-    const tableBody = document.getElementById('inventoryTable'); // tbody
+    const tableBody = document.getElementById('inventoryTable');
     const searchInput = document.getElementById('searchInput');
     const noResultsFooter = document.getElementById('noResults');
     const modal = document.getElementById('deviceModal');
@@ -221,6 +221,9 @@ A32 5G,3,3,3,`;
     const cancelBtn = document.getElementById('cancelBtn');
     const stockInputsContainer = document.getElementById('stockInputs');
     const exportBtn = document.getElementById('exportBtn');
+    const brandSelect = document.getElementById('brand');
+    const modelInput = document.getElementById('model');
+    const originalModelInput = document.getElementById('originalModel');
 
     // ---------- UTIL: parse CSV ----------
     function parseCSV(csvText, brand) {
@@ -228,7 +231,7 @@ A32 5G,3,3,3,`;
       const headerLine = lines.shift().trim();
       const headers = headerLine.split(',').map(h => h.trim().toUpperCase());
       return lines
-        .filter(l => l.trim().length) // evitar líneas vacías
+        .filter(l => l.trim().length)
         .map(line => {
           const values = line.split(',');
           const item = { brand, model: (values[0] || '').trim().toUpperCase(), stock: {} };
@@ -246,19 +249,18 @@ A32 5G,3,3,3,`;
       try {
         const snapshot = await getDocs(inventoryCollection);
         if (snapshot.empty) {
-          // Si la colección está vacía, sembramos desde CSV (sólo la primera vez)
+          console.log("Base de datos vacía. Sembrando datos iniciales...");
           const initial = [...parseCSV(iphoneCsvData, 'iPhone'), ...parseCSV(androidCsvData, 'Android')];
-          // subimos cada item
           for (const it of initial) {
             await addDoc(inventoryCollection, it);
           }
-          // recargar snapshot
           const newSnap = await getDocs(inventoryCollection);
           fullInventory = newSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         } else {
           fullInventory = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         }
 
+        console.log("Inventario cargado:", fullInventory);
         renderTable(fullInventory);
         updateDashboard();
       } catch (err) {
@@ -270,22 +272,29 @@ A32 5G,3,3,3,`;
     // ---------- FIRESTORE: guardar (crear o editar) ----------
     async function saveDeviceToFirestore(device, originalModel = null) {
       try {
+        console.log("Guardando dispositivo:", device, "Original:", originalModel);
+        
         if (originalModel) {
+          // Modo edición
           const existing = fullInventory.find(d => d.model === originalModel);
           if (existing) {
-            // reemplaza todo el doc con setDoc
+            console.log("Actualizando documento existente con ID:", existing.id);
             await setDoc(doc(db, "inventory", existing.id), device);
           } else {
-            // no encontrado: crear nuevo
+            console.log("No se encontró el documento original, creando uno nuevo");
             await addDoc(inventoryCollection, device);
           }
         } else {
+          // Modo creación
+          console.log("Creando nuevo documento");
           await addDoc(inventoryCollection, device);
         }
+        
         await loadInventoryFromFirestore();
+        alert("Dispositivo guardado correctamente ✓");
       } catch (err) {
         console.error("Error guardando en Firestore:", err);
-        alert("No se pudo guardar. Mira la consola.");
+        alert("No se pudo guardar. Error: " + err.message);
       }
     }
 
@@ -293,12 +302,16 @@ A32 5G,3,3,3,`;
     async function deleteDeviceFromFirestore(model) {
       try {
         const existing = fullInventory.find(d => d.model === model);
-        if (!existing) return;
+        if (!existing) {
+          alert("No se encontró el dispositivo");
+          return;
+        }
         await deleteDoc(doc(db, "inventory", existing.id));
         await loadInventoryFromFirestore();
+        alert("Dispositivo eliminado correctamente ✓");
       } catch (err) {
         console.error("Error eliminando:", err);
-        alert("No se pudo eliminar. Mira la consola.");
+        alert("No se pudo eliminar. Error: " + err.message);
       }
     }
 
@@ -321,7 +334,8 @@ A32 5G,3,3,3,`;
         });
 
         const totalStock = Object.values(item.stock || {}).reduce((s, count) => s + (Number(count) || 0), 0);
-        cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-gray-800 bg-gray-100">${totalStock}</td>`;
+        const totalColor = totalStock < 3 && totalStock > 0 ? 'text-red-600' : 'text-gray-800';
+        cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center font-bold ${totalColor} bg-gray-100">${totalStock}</td>`;
 
         cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center font-medium">
                     <button class="edit-btn text-indigo-600 hover:text-indigo-900" data-model="${item.model}">Editar</button>
@@ -354,37 +368,44 @@ A32 5G,3,3,3,`;
     function showModal(item = null) {
       deviceForm.reset();
       stockInputsContainer.innerHTML = '';
+      
+      // Crear inputs de stock con steppers
       ALL_COLORS.forEach(color => {
         const colorId = color.toLowerCase().replace(/[^a-z0-9]/g, '');
-        stockInputsContainer.innerHTML += `
-          <div>
-            <label for="stock-${colorId}" class="block text-sm font-medium text-gray-600 text-center mb-1">${color}</label>
-            <div class="flex items-center justify-center">
-              <button type="button" class="stepper-btn down font-bold bg-gray-200 text-gray-700 px-4 py-2 rounded-l-md hover:bg-gray-300">-</button>
-              <input type="number" id="stock-${colorId}" name="${color}" min="0" value="0" class="w-16 text-center border-t border-b border-gray-300 py-2">
-              <button type="button" class="stepper-btn up font-bold bg-gray-200 text-gray-700 px-4 py-2 rounded-r-md hover:bg-gray-300">+</button>
-            </div>
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <label for="stock-${colorId}" class="block text-sm font-medium text-gray-600 text-center mb-1">${color}</label>
+          <div class="flex items-center justify-center">
+            <button type="button" class="stepper-btn down font-bold bg-gray-200 text-gray-700 px-4 py-2 rounded-l-md hover:bg-gray-300" data-input="stock-${colorId}">-</button>
+            <input type="number" id="stock-${colorId}" name="${color}" min="0" value="0" class="w-16 text-center border-t border-b border-gray-300 py-2 focus:outline-none">
+            <button type="button" class="stepper-btn up font-bold bg-gray-200 text-gray-700 px-4 py-2 rounded-r-md hover:bg-gray-300" data-input="stock-${colorId}">+</button>
           </div>`;
+        stockInputsContainer.appendChild(div);
       });
 
       if (item) {
+        // Modo edición
         modalTitle.textContent = 'Editar Dispositivo';
-        document.getElementById('originalModel').value = item.model;
-        document.getElementById('model').value = item.model;
-        document.getElementById('brand').value = item.brand;
-        document.getElementById('model').readOnly = true;
+        originalModelInput.value = item.model;
+        modelInput.value = item.model;
+        brandSelect.value = item.brand;
+        modelInput.readOnly = true;
+        modelInput.classList.add('bg-gray-100');
+        
         ALL_COLORS.forEach(color => {
           const colorId = color.toLowerCase().replace(/[^a-z0-9]/g, '');
           const el = document.getElementById(`stock-${colorId}`);
           if (el) el.value = item.stock && item.stock[color] ? item.stock[color] : 0;
         });
       } else {
+        // Modo agregar
         modalTitle.textContent = 'Agregar Nuevo Dispositivo';
-        document.getElementById('originalModel').value = '';
-        document.getElementById('model').readOnly = false;
+        originalModelInput.value = '';
+        modelInput.readOnly = false;
+        modelInput.classList.remove('bg-gray-100');
       }
 
-      // mostrar con transición
+      // Mostrar con transición
       modal.classList.remove('hidden');
       setTimeout(() => {
         modal.classList.remove('opacity-0');
@@ -405,19 +426,44 @@ A32 5G,3,3,3,`;
       renderTable(filteredInventory);
     }
 
-    // ---------- Form submit ----------
+    // ---------- Form submit (CORREGIDO) ----------
     async function handleFormSubmit(event) {
       event.preventDefault();
-      const originalModel = document.getElementById('originalModel').value.trim().toUpperCase();
-      const newModel = document.getElementById('model').value.trim().toUpperCase();
-      if (!newModel) { alert('El nombre del modelo no puede estar vacío.'); return; }
-      if (!originalModel && fullInventory.some(item => item.model === newModel)) { alert('Ya existe un dispositivo con este modelo.'); return; }
+      
+      console.log("Formulario enviado");
+      
+      const originalModel = originalModelInput.value.trim().toUpperCase();
+      const newModel = modelInput.value.trim().toUpperCase();
+      const brand = brandSelect.value;
+      
+      if (!newModel) {
+        alert('El nombre del modelo no puede estar vacío.');
+        return;
+      }
+      
+      // Validar si ya existe (solo en modo agregar)
+      if (!originalModel && fullInventory.some(item => item.model === newModel)) {
+        alert('Ya existe un dispositivo con este modelo.');
+        return;
+      }
 
-      const formData = new FormData(deviceForm);
+      // Recopilar stock de todos los colores
       const stock = {};
-      ALL_COLORS.forEach(color => stock[color] = parseInt(formData.get(color), 10) || 0);
-      const deviceData = { brand: formData.get('brand'), model: newModel, stock };
+      ALL_COLORS.forEach(color => {
+        const colorId = color.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const inputEl = document.getElementById(`stock-${colorId}`);
+        stock[color] = parseInt(inputEl.value, 10) || 0;
+      });
 
+      const deviceData = {
+        brand: brand,
+        model: newModel,
+        stock: stock
+      };
+
+      console.log("Datos a guardar:", deviceData);
+
+      // Guardar en Firestore
       await saveDeviceToFirestore(deviceData, originalModel || null);
       hideModal();
     }
@@ -443,31 +489,58 @@ A32 5G,3,3,3,`;
       document.body.removeChild(link);
     }
 
-    // ---------- EVENTOS (delegación y botones) ----------
-    // stepper +/- dentro del modal
-    modal.addEventListener('click', function(event) {
+    // ---------- EVENTOS ----------
+    
+    // Stepper +/- dentro del modal (CORREGIDO)
+    stockInputsContainer.addEventListener('click', function(event) {
       if (!event.target.classList.contains('stepper-btn')) return;
-      const input = event.target.parentElement.querySelector('input[type="number"]');
+      
+      const inputId = event.target.dataset.input;
+      const input = document.getElementById(inputId);
+      
       if (!input) return;
+      
       let currentValue = parseInt(input.value, 10);
       if (isNaN(currentValue)) currentValue = 0;
-      if (event.target.classList.contains('up')) input.value = currentValue + 1;
-      else if (event.target.classList.contains('down')) input.value = Math.max(0, currentValue - 1);
+      
+      if (event.target.classList.contains('up')) {
+        input.value = currentValue + 1;
+      } else if (event.target.classList.contains('down')) {
+        input.value = Math.max(0, currentValue - 1);
+      }
     });
 
+    // Búsqueda
     searchInput.addEventListener('input', handleSearch);
+
+    // Botón agregar
     addDeviceBtn.addEventListener('click', () => showModal());
+
+    // Botón cancelar
     cancelBtn.addEventListener('click', hideModal);
+
+    // Submit del formulario
     deviceForm.addEventListener('submit', handleFormSubmit);
+
+    // Exportar
     exportBtn.addEventListener('click', exportToCsv);
 
-    // delegación en tabla para editar/eliminar
-    document.getElementById('inventoryTable').addEventListener('click', async event => {
+    // Cerrar modal al hacer clic fuera del contenedor
+    modal.addEventListener('click', function(event) {
+      if (event.target === modal) {
+        hideModal();
+      }
+    });
+
+    // Delegación en tabla para editar/eliminar
+    tableBody.addEventListener('click', async event => {
       const model = event.target.dataset.model;
+      
       if (event.target.classList.contains('edit-btn')) {
         const item = fullInventory.find(d => d.model === model);
         if (item) showModal(item);
       }
+      
       if (event.target.classList.contains('delete-btn')) {
         const confirmation = prompt(`Escribe 'ELIMINAR' para borrar el modelo ${model}.`);
         if (confirmation === 'ELIMINAR') {
@@ -479,7 +552,7 @@ A32 5G,3,3,3,`;
     });
 
     // ---------- INICIALIZACIÓN ----------
-    // Carga inventario desde Firestore (si está vacío, siembra desde CSV)
+    console.log("Iniciando aplicación...");
     await loadInventoryFromFirestore();
   </script>
 </body>
