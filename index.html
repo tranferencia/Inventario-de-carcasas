@@ -1,352 +1,486 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario de Carcasas v2.2</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .modal-overlay {
-            transition: opacity 0.3s ease;
-        }
-        .modal-container {
-            transition: transform 0.3s ease;
-        }
-        /* Ocultar las flechas por defecto del input numérico */
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inventario de Carcasas v2.2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .modal-overlay { transition: opacity 0.3s ease; }
+    .modal-container { transition: transform 0.3s ease; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+  </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <div class="container mx-auto p-4 md:p-8">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Gestor de Inventario de Carcasas</h1>
-            <p class="text-gray-600 mt-2">Busca, agrega, edita o elimina dispositivos de tu inventario.</p>
-        </header>
+  <div class="container mx-auto p-4 md:p-8">
+    <header class="text-center mb-8">
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Gestor de Inventario de Carcasas</h1>
+      <p class="text-gray-600 mt-2">Busca, agrega, edita o elimina dispositivos de tu inventario.</p>
+    </header>
 
-        <main>
-            <!-- Dashboard Stats -->
-            <div id="dashboard" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 max-w-4xl mx-auto">
-                <!-- Total Models Card -->
-                <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
-                    <div class="bg-blue-100 p-3 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Modelos Totales</p>
-                        <p id="totalModels" class="text-2xl font-bold text-gray-900">0</p>
-                    </div>
-                </div>
-                <!-- Total Units Card -->
-                <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
-                     <div class="bg-green-100 p-3 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Unidades Totales</p>
-                        <p id="totalUnits" class="text-2xl font-bold text-gray-900">0</p>
-                    </div>
-                </div>
-                <!-- Low Stock Card -->
-                <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
-                     <div class="bg-red-100 p-3 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Alertas Stock Bajo (&lt;3)</p>
-                        <p id="lowStockAlerts" class="text-2xl font-bold text-red-600">0</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Controles: Búsqueda y Botones -->
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 max-w-4xl mx-auto gap-4">
-                <input type="text" id="searchInput"
-                    class="w-full sm:flex-grow px-4 py-3 bg-white border-2 border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300"
-                    placeholder="Buscar por modelo (ej: 14 PRO MAX, S23 ULTRA...)">
-                <div class="flex gap-4 w-full sm:w-auto">
-                     <button id="exportBtn" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
-                        Exportar
-                    </button>
-                    <button id="addDeviceBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
-                        + Agregar
-                    </button>
-                </div>
-            </div>
-
-            <!-- Tabla de Inventario -->
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl mx-auto">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marca</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Negro</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Azul</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rojo/Negro</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Verde</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rojo Completo</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryTable" class="bg-white divide-y divide-gray-200"></tbody>
-                         <tfoot id="noResults" class="hidden">
-                            <tr><td colspan="9" class="text-center py-10 px-6 text-gray-500"><p class="font-semibold text-lg">No se encontraron resultados</p></td></tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal para Agregar/Editar Dispositivo -->
-    <div id="deviceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 modal-overlay hidden opacity-0">
-        <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-lg mx-4 modal-container transform scale-95">
-            <h2 id="modalTitle" class="text-2xl font-bold mb-6 text-gray-800">Agregar Nuevo Dispositivo</h2>
-            <form id="deviceForm">
-                <input type="hidden" id="originalModel" value="">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="brand" class="block text-sm font-medium text-gray-700 mb-1">Marca</label>
-                        <select id="brand" name="brand" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            <option value="iPhone">iPhone</option>
-                            <option value="Android">Android</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="model" class="block text-sm font-medium text-gray-700 mb-1">Modelo</label>
-                        <input type="text" id="model" name="model" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 15 PRO MAX">
-                    </div>
-                </div>
-                <div class="mt-6"><p class="text-sm font-medium text-gray-700 mb-2">Stock por Color:</p><div id="stockInputs" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div></div>
-                <div class="mt-8 flex justify-end space-x-4">
-                    <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Guardar</button>
-                </div>
-            </form>
+    <main>
+      <!-- Dashboard Stats -->
+      <div id="dashboard" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 max-w-4xl mx-auto">
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
+          <div class="bg-blue-100 p-3 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Modelos Totales</p>
+            <p id="totalModels" class="text-2xl font-bold text-gray-900">0</p>
+          </div>
         </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
+          <div class="bg-green-100 p-3 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Unidades Totales</p>
+            <p id="totalUnits" class="text-2xl font-bold text-gray-900">0</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-lg flex items-center space-x-4">
+          <div class="bg-red-100 p-3 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Alertas Stock Bajo (&lt;3)</p>
+            <p id="lowStockAlerts" class="text-2xl font-bold text-red-600">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex flex-col sm:flex-row justify-between items-center mb-6 max-w-4xl mx-auto gap-4">
+        <input type="text" id="searchInput" class="w-full sm:flex-grow px-4 py-3 bg-white border-2 border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300" placeholder="Buscar por modelo (ej: 14 PRO MAX, S23 ULTRA...)">
+        <div class="flex gap-4 w-full sm:w-auto">
+          <button id="exportBtn" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">Exportar</button>
+          <button id="addDeviceBtn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl mx-auto">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marca</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Negro</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Azul</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rojo/Negro</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Verde</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Rojo Completo</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTable" class="bg-white divide-y divide-gray-200"></tbody>
+            <tfoot id="noResults" class="hidden">
+              <tr><td colspan="9" class="text-center py-10 px-6 text-gray-500"><p class="font-semibold text-lg">No se encontraron resultados</p></td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div id="deviceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 modal-overlay hidden opacity-0">
+    <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-lg mx-4 modal-container transform scale-95">
+      <h2 id="modalTitle" class="text-2xl font-bold mb-6 text-gray-800">Agregar Nuevo Dispositivo</h2>
+      <form id="deviceForm">
+        <input type="hidden" id="originalModel" value="">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="brand" class="block text-sm font-medium text-gray-700 mb-1">Marca</label>
+            <select id="brand" name="brand" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="iPhone">iPhone</option>
+              <option value="Android">Android</option>
+            </select>
+          </div>
+          <div>
+            <label for="model" class="block text-sm font-medium text-gray-700 mb-1">Modelo</label>
+            <input type="text" id="model" name="model" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 15 PRO MAX">
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <p class="text-sm font-medium text-gray-700 mb-2">Stock por Color:</p>
+          <div id="stockInputs" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </div>
+
+        <div class="mt-8 flex justify-end space-x-4">
+          <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Guardar</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <script type="module">
-  import { 
-    initializeApp 
-  } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+  <!-- SCRIPT: Firebase + Lógica completa -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      setDoc,
+      doc,
+      deleteDoc
+    } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-  import { 
-    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc 
-  } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+    // ----- PON AQUÍ TU FIREBASE CONFIG (reemplaza después) -----
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROJECT_ID.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_PROJECT_ID.appspot.com",
+      messagingSenderId: "XXXXXXXXXXX",
+      appId: "1:XXXXXXXXXXX:web:XXXXXXXXXXXXXX"
+    };
+    // -----------------------------------------------------------
 
-  // --- CONFIG DE FIREBASE ---
-   const firebaseConfig = {
-    apiKey: "AIzaSyBtd-1GTJFaff31a76nOWlh339Uj5NcJCE",
-    authDomain: "cases-data-7b289.firebaseapp.com",
-    projectId: "cases-data-7b289",
-    storageBucket: "cases-data-7b289.firebasestorage.app",
-    messagingSenderId: "677691932283",
-    appId: "1:677691932283:web:42382e1ff97377eef22cde"
-  };
+    // Inicializa Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const inventoryCollection = collection(db, "inventory");
 
-  // Inicializa Firebase y Firestore
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const inventoryCollection = collection(db, "inventory");
+    // ------------------ CONSTANTES (tus CSV / colores) ------------------
+    const iphoneCsvData = `MODELO,NEGRO,AZUL,ROJO/NEGRO,VERDE,ROJO COMPLETO
+14PRO,2,,,,
+14PLUS,1,,,,
+11PRO MAX,3,,1,,
+14PRO MAX,5,2,,,,
+11PRO  ,1,,,,,
+15PRO,5,,,,,
+13PRO MAX,3,3,3,,
+12MINI,2,,,,,
+15,4,,,,,
+12PRO MAX,6,2,5,,5
+XR,1,,,,,
+12PRO/NORMAL,8,7,7,2,1
+13PRO   ,6,9,1,,
+13NORMAL,4,6,1,,
+15PLUS,5,,,,,
+15PRO MAX,8,,,,,
+11NORMAL,3,6,,3,1`;
 
-  // --- VARIABLES GLOBALES ---
-  let fullInventory = [];
-  const ALL_COLORS = ['NEGRO', 'AZUL', 'ROJO/NEGRO', 'VERDE', 'ROJO COMPLETO'];
+    const androidCsvData = `MODELO,NEGRO,AZUL,ROJO/NEGRO,VERDE
+S23 PLUS,3,,,
+S21 PLUS,2,,1,
+A12 5G,2,,,
+A32 4G,2,3,1,
+S23 UTRA,10,5,4,
+A73,4,,,
+A54 5G,1,,,
+A71,2,1,,
+A21 S,1,,,
+A53 5G,6,,,
+A31,3,1,,
+A52/S,4,,,
+A34 5G,2,,,
+S23,1,,,
+S22 PLUS,4,1,1,
+A33 5G,1,,,
+S22 ULTRA,4,3,,2
+S20,1,1,,
+S20 FE,,1,3,
+A72,2,3,,
+S22,3,4,2,
+S21 FE,5,2,4,
+NOTE10 PLUS,2,,,
+NOTE 10 NORMAL,3,,,
+NOTE20 ULTRA,1,1,,
+S21 ULTRA,,2,1,1
+S20 ULTRA ,2,2,,
+S24 ULTRA,3,,,
+A22 4G,1,,,
+A32 5G,3,3,3,`;
 
-  // --- CRUD ---
-  async function loadInventoryFromFirestore() {
-    const snapshot = await getDocs(inventoryCollection);
-    fullInventory = snapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    }));
-    renderTable(fullInventory);
-    updateDashboard();
-  }
+    const ALL_COLORS = ['NEGRO', 'AZUL', 'ROJO/NEGRO', 'VERDE', 'ROJO COMPLETO'];
+    let fullInventory = []; // se llenará desde Firestore
 
-  async function saveDeviceToFirestore(device, originalModel = null) {
-    try {
-      if (originalModel) {
-        // editar
-        const existing = fullInventory.find(d => d.model === originalModel);
-        if (existing) {
-          await setDoc(doc(db, "inventory", existing.id), device);
-        }
-      } else {
-        await addDoc(inventoryCollection, device);
-      }
-      await loadInventoryFromFirestore();
-    } catch (e) {
-      console.error("Error guardando:", e);
+    // ---------- REFERENCIAS DOM ----------
+    const tableBody = document.getElementById('inventoryTable'); // tbody
+    const searchInput = document.getElementById('searchInput');
+    const noResultsFooter = document.getElementById('noResults');
+    const modal = document.getElementById('deviceModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const deviceForm = document.getElementById('deviceForm');
+    const addDeviceBtn = document.getElementById('addDeviceBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const stockInputsContainer = document.getElementById('stockInputs');
+    const exportBtn = document.getElementById('exportBtn');
+
+    // ---------- UTIL: parse CSV ----------
+    function parseCSV(csvText, brand) {
+      const lines = csvText.trim().split('\n');
+      const headerLine = lines.shift().trim();
+      const headers = headerLine.split(',').map(h => h.trim().toUpperCase());
+      return lines
+        .filter(l => l.trim().length) // evitar líneas vacías
+        .map(line => {
+          const values = line.split(',');
+          const item = { brand, model: (values[0] || '').trim().toUpperCase(), stock: {} };
+          ALL_COLORS.forEach(color => item.stock[color] = 0);
+          headers.slice(1).forEach((header, index) => {
+            const stockValue = parseInt(values[index + 1], 10) || 0;
+            if (ALL_COLORS.includes(header)) item.stock[header] = stockValue;
+          });
+          return item;
+        });
     }
-  }
 
-  async function deleteDeviceFromFirestore(model) {
-    try {
-      const existing = fullInventory.find(d => d.model === model);
-      if (existing) {
+    // ---------- FIRESTORE: cargar (y sembrar si vacío) ----------
+    async function loadInventoryFromFirestore() {
+      try {
+        const snapshot = await getDocs(inventoryCollection);
+        if (snapshot.empty) {
+          // Si la colección está vacía, sembramos desde CSV (sólo la primera vez)
+          const initial = [...parseCSV(iphoneCsvData, 'iPhone'), ...parseCSV(androidCsvData, 'Android')];
+          // subimos cada item
+          for (const it of initial) {
+            await addDoc(inventoryCollection, it);
+          }
+          // recargar snapshot
+          const newSnap = await getDocs(inventoryCollection);
+          fullInventory = newSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } else {
+          fullInventory = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+
+        renderTable(fullInventory);
+        updateDashboard();
+      } catch (err) {
+        console.error("Error cargando inventario desde Firestore:", err);
+        alert("Error al conectar con Firestore. Revisa la consola y tu firebaseConfig.");
+      }
+    }
+
+    // ---------- FIRESTORE: guardar (crear o editar) ----------
+    async function saveDeviceToFirestore(device, originalModel = null) {
+      try {
+        if (originalModel) {
+          const existing = fullInventory.find(d => d.model === originalModel);
+          if (existing) {
+            // reemplaza todo el doc con setDoc
+            await setDoc(doc(db, "inventory", existing.id), device);
+          } else {
+            // no encontrado: crear nuevo
+            await addDoc(inventoryCollection, device);
+          }
+        } else {
+          await addDoc(inventoryCollection, device);
+        }
+        await loadInventoryFromFirestore();
+      } catch (err) {
+        console.error("Error guardando en Firestore:", err);
+        alert("No se pudo guardar. Mira la consola.");
+      }
+    }
+
+    // ---------- FIRESTORE: eliminar ----------
+    async function deleteDeviceFromFirestore(model) {
+      try {
+        const existing = fullInventory.find(d => d.model === model);
+        if (!existing) return;
         await deleteDoc(doc(db, "inventory", existing.id));
         await loadInventoryFromFirestore();
+      } catch (err) {
+        console.error("Error eliminando:", err);
+        alert("No se pudo eliminar. Mira la consola.");
       }
-    } catch (e) {
-      console.error("Error eliminando:", e);
     }
-  }
 
-  // --- RENDER DE TABLA ---
-  function renderTable(inventoryData) {
-    const tableBody = document.getElementById('inventoryTable');
-    const noResultsFooter = document.getElementById('noResults');
+    // ---------- RENDER tabla ----------
+    function renderTable(inventoryData) {
+      tableBody.innerHTML = '';
+      noResultsFooter.classList.toggle('hidden', inventoryData.length > 0);
 
-    tableBody.innerHTML = '';
-    noResultsFooter.classList.toggle('hidden', inventoryData.length > 0);
+      inventoryData.forEach(item => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 transition-colors duration-200';
+        const brandColor = item.brand === 'iPhone' ? 'text-blue-600' : 'text-green-600';
+        let cells = `<td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${brandColor}">${item.brand}</td>
+                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.model}</td>`;
 
-    inventoryData.forEach(item => {
-      const row = document.createElement('tr');
-      row.className = 'hover:bg-gray-50 transition-colors duration-200';
-      const brandColor = item.brand === 'iPhone' ? 'text-blue-600' : 'text-green-600';
-      let cells = `<td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${brandColor}">${item.brand}</td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.model}</td>`;
-      
-      ALL_COLORS.forEach(color => {
-        const stockCount = item.stock[color] || 0;
-        const stockColor = stockCount === 0 ? 'text-red-500 font-semibold' : 'text-gray-700';
-        cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center ${stockColor}">${stockCount > 0 ? stockCount : '-'}</td>`;
+        ALL_COLORS.forEach(color => {
+          const stockCount = (item.stock && item.stock[color]) ? item.stock[color] : 0;
+          const stockColor = stockCount === 0 ? 'text-red-500 font-semibold' : 'text-gray-700';
+          cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center ${stockColor}">${stockCount > 0 ? stockCount : '-'}</td>`;
+        });
+
+        const totalStock = Object.values(item.stock || {}).reduce((s, count) => s + (Number(count) || 0), 0);
+        cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-gray-800 bg-gray-100">${totalStock}</td>`;
+
+        cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center font-medium">
+                    <button class="edit-btn text-indigo-600 hover:text-indigo-900" data-model="${item.model}">Editar</button>
+                    <button class="delete-btn text-red-600 hover:text-red-900 ml-4" data-model="${item.model}">Eliminar</button>
+                  </td>`;
+
+        row.innerHTML = cells;
+        tableBody.appendChild(row);
       });
+    }
 
-      const totalStock = Object.values(item.stock).reduce((s, count) => s + count, 0);
-      cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-gray-800 bg-gray-100">${totalStock}</td>`;
-      
-      cells += `<td class="px-6 py-4 whitespace-nowrap text-sm text-center font-medium"><button class="edit-btn text-indigo-600 hover:text-indigo-900" data-model="${item.model}">Editar</button><button class="delete-btn text-red-600 hover:text-red-900 ml-4" data-model="${item.model}">Eliminar</button></td>`;
-      
-      row.innerHTML = cells;
-      tableBody.appendChild(row);
-    });
-  }
+    // ---------- DASHBOARD ----------
+    function updateDashboard() {
+      const totalModelsEl = document.getElementById('totalModels');
+      const totalUnitsEl = document.getElementById('totalUnits');
+      const lowStockAlertsEl = document.getElementById('lowStockAlerts');
 
-  // --- DASHBOARD ---
-  function updateDashboard() {
-    const totalModelsEl = document.getElementById('totalModels');
-    const totalUnitsEl = document.getElementById('totalUnits');
-    const lowStockAlertsEl = document.getElementById('lowStockAlerts');
+      totalModelsEl.textContent = fullInventory.length;
+      totalUnitsEl.textContent = fullInventory.reduce((sum, item) => {
+        return sum + Object.values(item.stock || {}).reduce((s, count) => s + (Number(count) || 0), 0);
+      }, 0);
 
-    totalModelsEl.textContent = fullInventory.length;
-    totalUnitsEl.textContent = fullInventory.reduce((sum, item) => {
-      return sum + Object.values(item.stock).reduce((s, count) => s + count, 0);
-    }, 0);
-    lowStockAlertsEl.textContent = fullInventory.filter(item => {
-      const itemTotalStock = Object.values(item.stock).reduce((s, count) => s + count, 0);
-      return itemTotalStock > 0 && itemTotalStock < 3;
-    }).length;
-  }
+      lowStockAlertsEl.textContent = fullInventory.filter(item => {
+        const itemTotalStock = Object.values(item.stock || {}).reduce((s, count) => s + (Number(count) || 0), 0);
+        return itemTotalStock > 0 && itemTotalStock < 3;
+      }).length;
+    }
 
-  // --- BUSCADOR ---
-  function handleSearch() {
-    const searchInput = document.getElementById('searchInput');
-    const searchTerm = searchInput.value.trim().toUpperCase();
-    const filteredInventory = fullInventory.filter(item => item.model.includes(searchTerm));
-    renderTable(filteredInventory);
-  }
-
-  // --- MODAL Y FORM ---
-  const modal = document.getElementById('deviceModal');
-  const modalTitle = document.getElementById('modalTitle');
-  const deviceForm = document.getElementById('deviceForm');
-  const stockInputsContainer = document.getElementById('stockInputs');
-
-  function showModal(item = null) {
-    deviceForm.reset();
-    stockInputsContainer.innerHTML = '';
-    ALL_COLORS.forEach(color => {
-      const colorId = color.toLowerCase().replace(/[^a-z0-9]/g, '');
-      stockInputsContainer.innerHTML += `
-        <div>
-          <label for="stock-${colorId}" class="block text-sm font-medium text-gray-600 text-center mb-1">${color}</label>
-          <div class="flex items-center justify-center">
-            <button type="button" class="stepper-btn down font-bold bg-gray-200 text-gray-700 px-4 py-2 rounded-l-md hover:bg-gray-300">-</button>
-            <input type="number" id="stock-${colorId}" name="${color}" min="0" value="0" class="w-16 text-center border-t border-b border-gray-300 py-2">
-            <button type="button" class="stepper-btn up font-bold bg-gray-200 text-gray-700 px-4 py-2 rounded-r-md hover:bg-gray-300">+</button>
-          </div>
-        </div>`;
-    });
-
-    if (item) {
-      modalTitle.textContent = 'Editar Dispositivo';
-      document.getElementById('originalModel').value = item.model;
-      document.getElementById('model').value = item.model;
-      document.getElementById('brand').value = item.brand;
-      document.getElementById('model').readOnly = true;
+    // ---------- Modal y Form helpers ----------
+    function showModal(item = null) {
+      deviceForm.reset();
+      stockInputsContainer.innerHTML = '';
       ALL_COLORS.forEach(color => {
         const colorId = color.toLowerCase().replace(/[^a-z0-9]/g, '');
-        document.getElementById(`stock-${colorId}`).value = item.stock[color] || 0;
+        stockInputsContainer.innerHTML += `
+          <div>
+            <label for="stock-${colorId}" class="block text-sm font-medium text-gray-600 text-center mb-1">${color}</label>
+            <div class="flex items-center justify-center">
+              <button type="button" class="stepper-btn down font-bold bg-gray-200 text-gray-700 px-4 py-2 rounded-l-md hover:bg-gray-300">-</button>
+              <input type="number" id="stock-${colorId}" name="${color}" min="0" value="0" class="w-16 text-center border-t border-b border-gray-300 py-2">
+              <button type="button" class="stepper-btn up font-bold bg-gray-200 text-gray-700 px-4 py-2 rounded-r-md hover:bg-gray-300">+</button>
+            </div>
+          </div>`;
       });
-    } else {
-      modalTitle.textContent = 'Agregar Nuevo Dispositivo';
-      document.getElementById('originalModel').value = '';
-      document.getElementById('model').readOnly = false;
-    }
-    modal.classList.remove('hidden');
-  }
 
-  function hideModal() {
-    modal.classList.add('hidden');
-  }
-
-  async function handleFormSubmit(event) {
-    event.preventDefault();
-    const originalModel = document.getElementById('originalModel').value.trim().toUpperCase();
-    const newModel = document.getElementById('model').value.trim().toUpperCase();
-    if (!newModel) { alert('El nombre del modelo no puede estar vacío.'); return; }
-    
-    const formData = new FormData(deviceForm);
-    const stock = {};
-    ALL_COLORS.forEach(color => stock[color] = parseInt(formData.get(color), 10) || 0);
-    const deviceData = { brand: formData.get('brand'), model: newModel, stock };
-
-    await saveDeviceToFirestore(deviceData, originalModel || null);
-    hideModal();
-  }
-
-  // --- EVENTOS ---
-  document.getElementById('searchInput').addEventListener('input', handleSearch);
-  document.getElementById('addDeviceBtn').addEventListener('click', () => showModal());
-  document.getElementById('cancelBtn').addEventListener('click', hideModal);
-  deviceForm.addEventListener('submit', handleFormSubmit);
-
-  document.getElementById('inventoryTable').addEventListener('click', async event => {
-    const { model } = event.target.dataset;
-    if (event.target.classList.contains('edit-btn')) {
-      const item = fullInventory.find(d => d.model === model);
-      if (item) showModal(item);
-    }
-    if (event.target.classList.contains('delete-btn')) {
-      const confirmation = prompt(`Escribe 'ELIMINAR' para borrar el modelo ${model}.`);
-      if (confirmation === 'ELIMINAR') {
-        await deleteDeviceFromFirestore(model);
+      if (item) {
+        modalTitle.textContent = 'Editar Dispositivo';
+        document.getElementById('originalModel').value = item.model;
+        document.getElementById('model').value = item.model;
+        document.getElementById('brand').value = item.brand;
+        document.getElementById('model').readOnly = true;
+        ALL_COLORS.forEach(color => {
+          const colorId = color.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const el = document.getElementById(`stock-${colorId}`);
+          if (el) el.value = item.stock && item.stock[color] ? item.stock[color] : 0;
+        });
+      } else {
+        modalTitle.textContent = 'Agregar Nuevo Dispositivo';
+        document.getElementById('originalModel').value = '';
+        document.getElementById('model').readOnly = false;
       }
+
+      // mostrar con transición
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.querySelector('.modal-container').classList.remove('scale-95');
+      }, 10);
     }
-  });
 
-  // --- INICIO ---
-  loadInventoryFromFirestore();
-</script>
+    function hideModal() {
+      modal.classList.add('opacity-0');
+      modal.querySelector('.modal-container').classList.add('scale-95');
+      setTimeout(() => modal.classList.add('hidden'), 300);
+    }
 
-    
+    // ---------- Search ----------
+    function handleSearch() {
+      const searchTerm = searchInput.value.trim().toUpperCase();
+      const filteredInventory = fullInventory.filter(item => item.model.includes(searchTerm));
+      renderTable(filteredInventory);
+    }
+
+    // ---------- Form submit ----------
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+      const originalModel = document.getElementById('originalModel').value.trim().toUpperCase();
+      const newModel = document.getElementById('model').value.trim().toUpperCase();
+      if (!newModel) { alert('El nombre del modelo no puede estar vacío.'); return; }
+      if (!originalModel && fullInventory.some(item => item.model === newModel)) { alert('Ya existe un dispositivo con este modelo.'); return; }
+
+      const formData = new FormData(deviceForm);
+      const stock = {};
+      ALL_COLORS.forEach(color => stock[color] = parseInt(formData.get(color), 10) || 0);
+      const deviceData = { brand: formData.get('brand'), model: newModel, stock };
+
+      await saveDeviceToFirestore(deviceData, originalModel || null);
+      hideModal();
+    }
+
+    // ---------- Export CSV ----------
+    function exportToCsv() {
+      const headers = ['Marca', 'Modelo', ...ALL_COLORS];
+      const csvRows = [headers.join(',')];
+      fullInventory.forEach(item => {
+        const row = [item.brand, item.model, ...ALL_COLORS.map(color => item.stock && item.stock[color] ? item.stock[color] : 0)];
+        csvRows.push(row.join(','));
+      });
+      const csvString = csvRows.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      const today = new Date().toISOString().slice(0, 10);
+      link.setAttribute('download', `inventario_carcasas_${today}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // ---------- EVENTOS (delegación y botones) ----------
+    // stepper +/- dentro del modal
+    modal.addEventListener('click', function(event) {
+      if (!event.target.classList.contains('stepper-btn')) return;
+      const input = event.target.parentElement.querySelector('input[type="number"]');
+      if (!input) return;
+      let currentValue = parseInt(input.value, 10);
+      if (isNaN(currentValue)) currentValue = 0;
+      if (event.target.classList.contains('up')) input.value = currentValue + 1;
+      else if (event.target.classList.contains('down')) input.value = Math.max(0, currentValue - 1);
+    });
+
+    searchInput.addEventListener('input', handleSearch);
+    addDeviceBtn.addEventListener('click', () => showModal());
+    cancelBtn.addEventListener('click', hideModal);
+    deviceForm.addEventListener('submit', handleFormSubmit);
+    exportBtn.addEventListener('click', exportToCsv);
+
+    // delegación en tabla para editar/eliminar
+    document.getElementById('inventoryTable').addEventListener('click', async event => {
+      const model = event.target.dataset.model;
+      if (event.target.classList.contains('edit-btn')) {
+        const item = fullInventory.find(d => d.model === model);
+        if (item) showModal(item);
+      }
+      if (event.target.classList.contains('delete-btn')) {
+        const confirmation = prompt(`Escribe 'ELIMINAR' para borrar el modelo ${model}.`);
+        if (confirmation === 'ELIMINAR') {
+          await deleteDeviceFromFirestore(model);
+        } else if (confirmation !== null) {
+          alert('Confirmación incorrecta.');
+        }
+      }
+    });
+
+    // ---------- INICIALIZACIÓN ----------
+    // Carga inventario desde Firestore (si está vacío, siembra desde CSV)
+    await loadInventoryFromFirestore();
+  </script>
 </body>
 </html>
-
