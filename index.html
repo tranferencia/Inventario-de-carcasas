@@ -141,7 +141,26 @@
         </div>
     </div>
 
+    <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBtd-1GTJFaff31a76nOWlh339Uj5NcJCE",
+    authDomain: "cases-data-7b289.firebaseapp.com",
+    projectId: "cases-data-7b289",
+    storageBucket: "cases-data-7b289.firebasestorage.app",
+    messagingSenderId: "677691932283",
+    appId: "1:677691932283:web:42382e1ff97377eef22cde"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
@@ -200,6 +219,29 @@
                 handleSearch();
                 updateDashboard();
             }
+
+            import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const devicesCollection = collection(db, "devices");
+
+// Guardar dispositivo
+async function saveDevice(device) {
+  try {
+    await addDoc(devicesCollection, device);
+    console.log("Dispositivo guardado:", device);
+  } catch (e) {
+    console.error("Error guardando:", e);
+  }
+}
+
+// Cargar inventario
+async function loadInventory() {
+  const snapshot = await getDocs(devicesCollection);
+  const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  console.log("Inventario cargado:", list);
+  return list;
+}
+
 
             function initializeInventory() {
                 const storedInventory = localStorage.getItem(LOCAL_STORAGE_KEY);
