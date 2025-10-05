@@ -6,6 +6,12 @@
   <title>Inventario de Carcasas v2.2</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Inventario">
+  
   <style>
     body { font-family: 'Inter', sans-serif; }
     .modal-overlay { transition: opacity 0.3s ease; }
@@ -555,5 +561,20 @@ A32 5G,3,3,3,`;
     console.log("Iniciando aplicación...");
     await loadInventoryFromFirestore();
   </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(registration => {
+            console.log('✅ Service Worker registrado:', registration.scope);
+          })
+          .catch(error => {
+            console.log('❌ Error al registrar Service Worker:', error);
+          });
+      });
+    }
+  </script>
+  
 </body>
 </html>
